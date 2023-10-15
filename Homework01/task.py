@@ -11,12 +11,10 @@ from typing import NoReturn, Tuple, List
 
 def read_cancer_dataset(path_to_csv: str) -> Tuple[np.array, np.array]:
     """
-     
     Parameters
     ----------
     path_to_csv : str
         Путь к cancer датасету.
-
     Returns
     -------
     X : np.array
@@ -24,19 +22,17 @@ def read_cancer_dataset(path_to_csv: str) -> Tuple[np.array, np.array]:
     y : np.array
         Вектор бинарных меток, 1 соответствует доброкачественной опухоли (M), 
         0 --- злокачественной (B).
-
-    
     """
-    raise NotImplementedError()
+    df = pandas.read_csv(path_to_csv).sample(frac=1).reset_index(drop=True)
+    df.replace({'B': 0, 'M': 1}, inplace=True)
+    return (np.array(df.loc[:, df.columns != 'label']), np.array(df['label']))
 
 def read_spam_dataset(path_to_csv: str) -> Tuple[np.array, np.array]:
     """
-     
     Parameters
     ----------
     path_to_csv : str
         Путь к spam датасету.
-
     Returns
     -------
     X : np.array
@@ -44,10 +40,10 @@ def read_spam_dataset(path_to_csv: str) -> Tuple[np.array, np.array]:
     y : np.array
         Вектор бинарных меток, 
         1 если сообщение содержит спам, 0 если не содержит.
-    
     """
-    raise NotImplementedError()
-    
+    df = pandas.read_csv(path_to_csv).sample(frac=1).reset_index(drop=True)
+    return (np.array(df.loc[:, df.columns != 'label']), np.array(df['label']))
+
 # Task 2
 
 def train_test_split(X: np.array, y: np.array, ratio: float) -> Tuple[np.array, np.array, np.array, np.array]:
@@ -74,7 +70,6 @@ def train_test_split(X: np.array, y: np.array, ratio: float) -> Tuple[np.array, 
         Вектор меток для test выборки.
 
     """
-    raise NotImplementedError()
     
 # Task 3
 
@@ -98,7 +93,6 @@ def get_precision_recall_accuracy(y_pred: np.array, y_true: np.array) -> Tuple[n
         Значение метрики accuracy (одно для всех классов).
 
     """
-    raise NotImplementedError()
     
 # Task 4
 
@@ -119,7 +113,6 @@ class KDTree:
         -------
 
         """        
-        raise NotImplementedError()
     
     def query(self, X: np.array, k: int = 1) -> List[List]:
         """
@@ -139,7 +132,6 @@ class KDTree:
 
         """
         
-        raise NotImplementedError()
         
 # Task 5
 
@@ -155,7 +147,6 @@ class KNearest:
             Минимальный размер листа в KD-дереве.
 
         """        
-        raise NotImplementedError()    
     
     def fit(self, X: np.array, y: np.array) -> NoReturn:
         """
@@ -168,7 +159,6 @@ class KNearest:
             Метки точек, по которым строится классификатор.
 
         """        
-        raise NotImplementedError()
         
     def predict_proba(self, X: np.array) -> List[np.array]:
         """
@@ -187,7 +177,6 @@ class KNearest:
 
         """
     
-        raise NotImplementedError()
         
     def predict(self, X: np.array) -> np.array:
         """
