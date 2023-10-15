@@ -46,9 +46,8 @@ def read_spam_dataset(path_to_csv: str) -> Tuple[np.array, np.array]:
 
 # Task 2
 
-def train_test_split(X: np.array, y: np.array, ratio: float) -> Tuple[np.array, np.array, np.array, np.array]:
+def train_test_split(X: np.array, y: np.array, ratio: float = 0.9) -> Tuple[np.array, np.array, np.array, np.array]:
     """
-
     Parameters
     ----------
     X : np.array
@@ -57,7 +56,6 @@ def train_test_split(X: np.array, y: np.array, ratio: float) -> Tuple[np.array, 
         Вектор меток.
     ratio : float
         Коэффициент разделения.
-
     Returns
     -------
     X_train : np.array
@@ -68,9 +66,11 @@ def train_test_split(X: np.array, y: np.array, ratio: float) -> Tuple[np.array, 
         Матрица признаков для test выборки.
     y_test : np.array
         Вектор меток для test выборки.
-
     """
-    
+    X_train, X_test = np.array_split(X, [int(X.shape[0]*ratio)], axis=0)
+    y_train, y_test = np.split(y, [int(len(y)*ratio)])
+    return (X_train, y_train, X_test, y_test)
+
 # Task 3
 
 def get_precision_recall_accuracy(y_pred: np.array, y_true: np.array) -> Tuple[np.array, np.array, float]:
