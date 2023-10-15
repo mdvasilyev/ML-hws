@@ -75,14 +75,12 @@ def train_test_split(X: np.array, y: np.array, ratio: float = 0.9) -> Tuple[np.a
 
 def get_precision_recall_accuracy(y_pred: np.array, y_true: np.array) -> Tuple[np.array, np.array, float]:
     """
-
     Parameters
     ----------
     y_pred : np.array
         Вектор классов, предсказанных моделью.
     y_true : np.array
         Вектор истинных классов.
-
     Returns
     -------
     precision : np.array
@@ -91,9 +89,22 @@ def get_precision_recall_accuracy(y_pred: np.array, y_true: np.array) -> Tuple[n
         Вектор с recall для каждого класса.
     accuracy : float
         Значение метрики accuracy (одно для всех классов).
-
     """
-    
+    classes = len(np.unique(list(y_pred) + list(y_true)))
+    precision = [[] for _ in range(classes)]
+    recall = [[] for _ in range(classes)]
+    def calculate_metrics(y_true, y_pred, label):
+        true_positive = np.sum((y_true == label) & (y_pred == label))
+        false_positive = np.sum((y_true != label) & (y_pred == label))
+        false_negative = np.sum((y_true == label) & (y_pred != label))
+        precision = true_positive / (true_positive + false_positive)
+        recall = true_positive / (true_positive + false_negative)
+        return precision, recall
+    for i in range(classes):
+        precision[i], recall[i] = calculate_metrics(y_true, y_pred, i)
+    accuracy = np.mean(y_true == y_pred)
+    return (precision, recall, accuracy)
+
 # Task 4
 
 class KDTree:
