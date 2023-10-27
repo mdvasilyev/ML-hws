@@ -5,7 +5,7 @@ import matplotlib
 import copy
 import pandas
 from typing import NoReturn, Tuple, List
-
+import heapq
 
 # Task 1
 
@@ -110,7 +110,6 @@ def get_precision_recall_accuracy(y_pred: np.array, y_true: np.array) -> Tuple[n
 class KDTree:
     def __init__(self, X: np.array, leaf_size: int = 40):
         """
-
         Parameters
         ----------
         X : np.array
@@ -119,29 +118,81 @@ class KDTree:
             Минимальный размер листа
             (то есть, пока возможно, пространство разбивается на области, 
             в которых не меньше leaf_size точек).
-
         Returns
         -------
-
-        """        
-    
-    def query(self, X: np.array, k: int = 1) -> List[List]:
         """
 
+        # Euclidian distance
+        def calculate_distance(x, y):
+            return np.sqrt(np.sum([(x[i]-y[i])**2 for i in range(np.size(x))]))
+
+        # Create KDTree
+        def build(X, axis=0):
+            if len(X) >= leaf_size:
+                X = sorted(X, key=lambda x: x[axis])
+                axis = (axis + 1) % dim
+                m = len(X) // 2
+                return [build(X[:m], axis), build(X[m + 1:], axis), 
+                    X[m]]
+            if len(X) < leaf_size:
+                return [None, None, X]
+
+        # Get k nearest neighbors    
+        def query(node, point, k, return_distance, heap, axis=0, decide=1):
+            if node is not None:
+                cur_root = node[2]
+                if np.shape(cur_root) == (dim,):
+                    distance = calculate_distance(point, cur_root)
+                    edge_dist = cur_root[axis] - point[axis]
+                    if len(heap) < k:
+                        heapq.heappush(heap, (-distance, decide, cur_root))
+                    elif distance < -heap[0][0]:
+                        heapq.heappushpop(heap, (-distance, decide, cur_root))
+                    axis = (axis + 1) % dim
+                    if edge_dist < -heap[0][0]:
+                        choose = (edge_dist < 0, edge_dist >= 0)[:2]
+                    else:
+                        choose = (edge_dist < 0, edge_dist >= 0)[:1]
+                    for i in choose:
+                        query(node[i], point, k, return_distance, heap, axis, decide * 2 | i)
+                else:
+                    for p in cur_root:
+                        distance = calculate_distance(point, p)
+                        edge_dist = p[axis] - point[axis]
+                        if len(heap) < k:
+                            heapq.heappush(heap, (-distance, decide, p))
+                        elif distance < -heap[0][0]:
+                            heapq.heappushpop(heap, (-distance, decide, p))
+                        axis = (axis + 1) % dim
+                        if edge_dist < -heap[0][0]:
+                            choose = (edge_dist < 0, edge_dist >= 0)[:2]
+                        else:
+                            choose = (edge_dist < 0, edge_dist >= 0)[:1]
+                        for i in choose:
+                            query(node[i], point, k, return_distance, heap, axis, decide * 2 | i)
+            if decide == 1:
+                return [(-h[0], np.where(X == h[2])[0][0]) if return_distance else np.where(X == h[2])[0][0] for h in sorted(heap)][::-1]
+
+        dim = np.shape(X)[1]
+        self._query = query 
+        self._root = build(X)
+
+    
+    def query(self, X: np.array, k: int = 1, return_distance=False) -> List[List]:
+        """
         Parameters
         ----------
         X : np.array
             Набор точек, для которых нужно найти ближайших соседей.
         k : int
             Число ближайших соседей.
-
         Returns
         -------
         list[list]
             Список списков (длина каждого списка k): 
             индексы k ближайших соседей для всех точек из X.
-
         """
+        return [self._query(self._root, point, k, return_distance, []) for point in X]
         
         
 # Task 5
