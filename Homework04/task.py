@@ -3,6 +3,12 @@ from sklearn.model_selection import train_test_split
 import copy
 from typing import NoReturn
 
+def unit_step_func(x):
+    return np.where(x > 0, 1, 0)
+
+import math
+def sigmoid(x):
+  return 1 / (1 + math.exp(-x))
 
 # Task 1
 
@@ -26,7 +32,7 @@ class Perceptron:
         Вы можете добавлять свои поля в класс.
         
         """
-
+        self.iterations = iterations
         self.w = None
     
     def fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
@@ -43,7 +49,14 @@ class Perceptron:
             Набор меток классов для данных.
         
         """
-        pass
+        self.w = np.zeros(X.shape[1] + 1)
+        X = np.c_[np.ones((X.shape[0])), X]
+        y_ = unit_step_func(y)
+        for _ in range(self.iterations):
+            for idx, x_i in enumerate(X):
+                y_pred = unit_step_func(np.dot(x_i, self.w))
+                self.w += (y_[idx] - y_pred) * x_i
+            
             
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -61,7 +74,8 @@ class Perceptron:
             (по одной метке для каждого элемента из X).
         
         """
-        pass
+        X = np.c_[np.ones((X.shape[0])), X]
+        return unit_step_func(np.dot(X, self.w))
     
 # Task 2
 
