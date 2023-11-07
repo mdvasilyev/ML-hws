@@ -3,13 +3,6 @@ from sklearn.model_selection import train_test_split
 import copy
 from typing import NoReturn
 
-def unit_step_func(x):
-    return np.where(x > 0, 1, 0)
-
-import math
-def sigmoid(x):
-  return 1 / (1 + math.exp(-x))
-
 # Task 1
 
 class Perceptron:
@@ -32,6 +25,7 @@ class Perceptron:
         Вы можете добавлять свои поля в класс.
         
         """
+        self.learning_rate = 0.001
         self.iterations = iterations
         self.w = None
     
@@ -51,11 +45,11 @@ class Perceptron:
         """
         self.w = np.zeros(X.shape[1] + 1)
         X = np.c_[np.ones((X.shape[0])), X]
-        y_ = unit_step_func(y)
+        y_ = np.where(y > 0, 1, 0)
         for _ in range(self.iterations):
-            for idx, x_i in enumerate(X):
-                y_pred = unit_step_func(np.dot(x_i, self.w))
-                self.w += (y_[idx] - y_pred) * x_i
+            y_pred = np.dot(X, self.w)
+            errors = y_ - np.where(y_pred > 0, 1, 0)
+            self.w += self.learning_rate * np.dot(X.T, errors)
             
             
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -75,13 +69,13 @@ class Perceptron:
         
         """
         X = np.c_[np.ones((X.shape[0])), X]
-        return unit_step_func(np.dot(X, self.w))
+        return np.where(np.dot(X, self.w) > 0, 1, 0)
     
 # Task 2
 
 class PerceptronBest:
 
-    def __init__(self, iterations: int = 100):
+    def __init__(self, iterations: int = 100, learning_rate: float = 0.01, early_stopping: bool = True, tol: float = 0.001):
         """
         Parameters
         ----------
@@ -100,9 +94,13 @@ class PerceptronBest:
         Вы можете добавлять свои поля в класс.
         
         """
-
+        self.iterations = iterations
+        self.learning_rate = learning_rate
+        self.early_stopping = early_stopping
+        self.tol = tol
+        self.cur_w = None
         self.w = None
-    
+
     def fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
         Обучает перцептрон.
@@ -121,8 +119,27 @@ class PerceptronBest:
             Набор меток классов для данных.
         
         """
-        pass
+        # self.cur_w = np.zeros(X.shape[1] + 1)
+        self.cur_w = np.random.rand(X.shape[1] + 1) * 0.01
+        self.w = np.copy(self.cur_w)
+        X = np.c_[np.ones((X.shape[0])), X]
+        y_ = np.where(y > 0, 1, 0)
+        best_accuracy = 0
+        prev_accuracy = 0
+        for _ in range(self.iterations):
+            y_pred = X.dot(self.cur_w)
+            errors = y_ - np.where(y_pred > 0, 1, 0)
+            self.cur_w += self.learning_rate * X.T.dot(errors)
             
+            cur_accuracy = np.mean(np.where(X.dot(self.cur_w) > 0, 1, 0) == y_)
+            if cur_accuracy >= best_accuracy:
+                best_accuracy = cur_accuracy
+                self.w = np.copy(self.cur_w)
+            
+            if self.early_stopping and abs(cur_accuracy - prev_accuracy) < self.tol:
+                break
+            prev_accuracy = cur_accuracy
+
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Предсказывает метки классов.
@@ -139,8 +156,9 @@ class PerceptronBest:
             (по одной метке для каждого элемента из X).
         
         """
-        pass
-    
+        X = np.c_[np.ones((X.shape[0])), X]
+        return np.where(X.dot(self.w) > 0, 1, 0)
+
 # Task 3
 
 def transform_images(images: np.ndarray) -> np.ndarray:
