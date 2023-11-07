@@ -163,7 +163,9 @@ class PerceptronBest:
 
 def transform_images(images: np.ndarray) -> np.ndarray:
     """
-    Переводит каждое изображение в вектор из двух элементов.
+    Переводит каждое изображение в вектор из двух элементов:
+    1) Среднее значение яркости пикселей (mean)
+    2) Стандартное отклонение яркости пикселей (std deviation)
         
     Parameters
     ----------
@@ -177,4 +179,12 @@ def transform_images(images: np.ndarray) -> np.ndarray:
         Двумерная матрица с преобразованными изображениями.
         Её размерность: (n_images, 2).
     """
-    return np.zeros((images.shape[0], 2))
+    n_images = images.shape[0]
+    transformed_images = np.zeros((n_images, 2))
+    for i in range(n_images):
+        image = images[i]
+        brightness = image.mean()
+        std_deviation = image.std()
+        transformed_images[i] = [brightness, std_deviation]
+
+    return transformed_images
