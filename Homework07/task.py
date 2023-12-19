@@ -56,7 +56,8 @@ class DecisionTreeLeaf:
         Метка класса, который встречается чаще всего среди элементов листа дерева
     """
     def __init__(self, ys):
-        self.y = None
+        unique, counts = np.unique(ys, return_counts=True)
+        self.y = unique[np.argmax(counts)]
 
 class DecisionTreeNode:
     """
@@ -75,10 +76,10 @@ class DecisionTreeNode:
     def __init__(self, split_dim: int, split_value: float, 
                  left: Union['DecisionTreeNode', DecisionTreeLeaf], 
                  right: Union['DecisionTreeNode', DecisionTreeLeaf]):
-        self.split_dim = None
-        self.split_value = None
-        self.left = None
-        self.right = None
+        self.split_dim = split_dim
+        self.split_value = split_value
+        self.left = left
+        self.right = right
         
 # Task 3
 
