@@ -10,13 +10,19 @@ def gini(x: np.ndarray) -> float:
     """
     Считает коэффициент Джини для массива меток x.
     """
-    pass
-    
+    unique, counts = np.unique(x, return_counts=True)
+    prob = counts / len(x)
+    gini = 1.0 - np.sum(prob ** 2)
+    return gini
+
 def entropy(x: np.ndarray) -> float:
     """
     Считает энтропию для массива меток x.
     """
-    pass
+    unique, counts = np.unique(x, return_counts=True)
+    prob = counts / len(x)
+    entropy = -np.sum(prob * np.log2(prob))
+    return entropy
 
 def gain(left_y: np.ndarray, right_y: np.ndarray, criterion: Callable) -> float:
     """
@@ -31,7 +37,12 @@ def gain(left_y: np.ndarray, right_y: np.ndarray, criterion: Callable) -> float:
     criterion : Callable
         Критерий разбиения.
     """
-    pass
+    length = len(left_y) + len(right_y)
+    metric = criterion(np.concatenate([left_y, right_y]))
+    l_weight = len(left_y) / length
+    r_weight = len(right_y) / length
+    gain = metric - (l_weight * criterion(left_y) + r_weight * criterion(right_y))
+    return gain
 
 
 # Task 2
