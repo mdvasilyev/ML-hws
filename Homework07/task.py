@@ -58,6 +58,7 @@ class DecisionTreeLeaf:
     def __init__(self, ys):
         unique, counts = np.unique(ys, return_counts=True)
         self.y = unique[np.argmax(counts)]
+        self.prob = dict(zip(unique, counts))
 
 class DecisionTreeNode:
     """
@@ -75,13 +76,11 @@ class DecisionTreeNode:
     """
     def __init__(self, split_dim: int, split_value: float, 
                  left: Union['DecisionTreeNode', DecisionTreeLeaf], 
-                 right: Union['DecisionTreeNode', DecisionTreeLeaf],
-                 info_gain: float = {}):
+                 right: Union['DecisionTreeNode', DecisionTreeLeaf]):
         self.split_dim = split_dim
         self.split_value = split_value
         self.left = left
         self.right = right
-        self.info_gain = info_gain
         
 # Task 3
 
@@ -111,42 +110,46 @@ class DecisionTreeClassifier:
 
         """
         self.root = None
-        self.criterion = criterion
+        if criterion == "gini":
+            self.criterion = gini
+        else:
+            self.criterion = entropy
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
     
-    def build(self, dataset: np.ndarray, cur_depth: int):
-        X, y = dataset[:, :-1], dataset[:, -1]
-        samples, features = np.shape(X)
-        if self.max_depth is None: self.max_depth = 10e6
-        if samples >= self.min_samples_leaf and cur_depth <= self.max_depth:
-            split = self.get_split(dataset, features)
-            if split["info_gain"] > 0:
-                left = self.build(split["left"], cur_depth + 1)
-                right = self.build(split["right"], cur_depth + 1)
-                return DecisionTreeNode(split["split_dim"], split["split_value"], left, right, split["info_gain"])
-        return DecisionTreeLeaf(y)
+    def build(self, X: np.ndarray, y: np.ndarray, cur_depth: int):
+        unique_ys = set(y)
+        if (self.max_depth is not None and cur_depth >= self.max_depth) or (len(y) <= self.min_samples_leaf or len(unique_ys) == 1):
+            return DecisionTreeLeaf(y)
+        split_dim, split_value = self.get_split(X, y)
+        if split_dim is None:
+            return DecisionTreeLeaf(y)
+            
+        mask = X[:, split_dim] < split_value
+        return DecisionTreeNode(split_dim, split_value, self.build(X[mask], y[mask], cur_depth + 1), self.build(X[np.invert(mask)], y[np.invert(mask)], cur_depth + 1))
+
+    def calculate_gain(self, left_y: np.ndarray, right_y: np.ndarray, criterion: Callable, criterion_value, labels: np.ndarray):
+        left_w = len(left_y) / len(labels)
+        right_w = len(right_y) / len(labels)
+        return criterion_value - (left_w * criterion(left_y) + right_w * criterion(right_y))
     
-    def get_split(self, dataset: np.ndarray, features: int):
-        split = {}
-        max_info_gain = -10e6
-        for split_dim in range(features):
-            feature_values = dataset[:, split_dim]
-            possible_thresholds = np.unique(feature_values)
-            for split_value in possible_thresholds:
-                left_dataset = np.array([row for row in dataset if row[split_dim] < split_value])
-                right_dataset = np.array([row for row in dataset if row[split_dim] >= split_value])
-                if len(left_dataset) > 0 and len(right_dataset) > 0:
-                    y, left_y, right_y = dataset[:, -1], left_dataset[:, -1], right_dataset[:, -1]
-                    cur_info_gain = gain(left_y, right_y, globals()[self.criterion])
-                    if cur_info_gain > max_info_gain:
-                        max_info_gain = cur_info_gain
-                        split["split_dim"] = split_dim
-                        split["split_value"] = split_value
-                        split["left"] = left_dataset
-                        split["right"] = right_dataset
-                        split["info_gain"] = cur_info_gain
-        return split
+    def get_split(self, X: np.ndarray, y: np.ndarray):
+        gain = -10e6
+        split_dim = None
+        split_value = None
+        total_entropy = self.criterion(y)
+        for dim in range(X.shape[1]):
+            values = np.unique(X[:, dim])
+            if len(values) != 1:
+                for value in values:            
+                    mask = X[:, dim] < value
+                    if (len(y) - len(y[mask]) >= self.min_samples_leaf) or len(y[mask]) >= self.min_samples_leaf:
+                        cur_gain = self.calculate_gain(y[mask], y[np.invert(mask)], self.criterion, total_entropy, y)
+                        if cur_gain > gain:
+                            gain = cur_gain
+                            split_dim = dim
+                            split_value = value
+        return split_dim, split_value
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
@@ -159,8 +162,7 @@ class DecisionTreeClassifier:
         y : np.ndarray
             Вектор меток классов.
         """
-        dataset = np.hstack((X, np.transpose([y])))
-        self.root = self.build(dataset, cur_depth=0)
+        self.root = self.build(X, y, cur_depth=0)
     
     def predict_proba(self, X: np.ndarray) ->  List[Dict[Any, float]]:
         """
@@ -177,10 +179,15 @@ class DecisionTreeClassifier:
             Для каждого элемента из X возвращает словарь 
             {метка класса -> вероятность класса}.
         """
-        proba = {}
-        for x in X:
-            proba[x] = self.traverse_tree(x, self.root)
+        proba = [self.predict_class(self.root, x) for x in X]
         return proba
+    
+    def predict_class(self, node, x):
+        if isinstance(node, DecisionTreeLeaf):
+            return node.prob
+        elif x[node.split_dim] < node.split_value:
+            return self.predict_class(node.left, x)
+        return self.predict_class(node.right, x)
     
     def traverse_tree(self, x, tree: Union[DecisionTreeNode, DecisionTreeLeaf]):
         if tree.__class__.__name__ == "DecisionTreeLeaf":
@@ -209,5 +216,5 @@ class DecisionTreeClassifier:
         return [max(p.keys(), key=lambda k: p[k]) for p in proba]
     
 # Task 4
-task4_dtc = None
+task4_dtc = DecisionTreeClassifier("gini", 5, 2)
 
